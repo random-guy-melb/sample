@@ -43,7 +43,7 @@ custom_css = """
         line-height: 1.4;
     }
     .chat-message.assistant .message-content {
-        background-color: #2E4057;  /* Changed from #2b2b2b to a dark blue */
+        background-color: #2E4057;
         color: #ffffff;
         border-top-left-radius: 0;
     }
@@ -52,21 +52,11 @@ custom_css = """
         color: #ffffff;
         border-top-right-radius: 0;
     }
-    /* Ensure consistent font size */
-    .chat-message .message-content p {
+    /* Ensure consistent font size for all text in message content */
+    .chat-message .message-content * {
         font-size: 12px !important;
         margin: 0;
         padding: 0;
     }
 </style>
 """
-
-
-def display_chat_message(role, content):
-    message_class = "assistant" if role == "assistant" else "user"
-    message_html = f"""
-    <div class="chat-message {message_class}">
-        <div class="message-content">{content}</div>
-    </div>
-    """
-    st.markdown(message_html, unsafe_allow_html=True)
