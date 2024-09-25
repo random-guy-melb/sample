@@ -36,6 +36,36 @@ custom_css = """
         /* Removed margin-left and margin-right to align elements */
     }
 
+    /* Neon animation */
+    @keyframes neon-hue-rotate {
+        0% {
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+        }
+        25% {
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff;
+        }
+        50% {
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+        }
+        75% {
+            box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00;
+        }
+        100% {
+            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+        }
+    }
+
+    /* Styling for chat input neon effect and raised effect */
+    .stTextInput > div > input:focus {
+        animation: neon-hue-rotate 2s infinite alternate;
+        border: none;
+        outline: none;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 0, 0, 0.4);  /* Raised effect */
+        transform: translateY(-3px);  /* Slight upward lift */
+    }
+
+    /* Styling for header effect */
+
     .fixed-header {
         position: fixed;
         top: 0;
