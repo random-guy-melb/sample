@@ -36,33 +36,35 @@ custom_css = """
         /* Removed margin-left and margin-right to align elements */
     }
 
-    /* Neon animation */
-    @keyframes neon-hue-rotate {
+       /* Neon hue circling animation for chat input (darker colors) */
+    @keyframes neon-hue-circle {
         0% {
-            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+            box-shadow: 0 0 0px rgba(0,0,0,0), 0 0 10px rgba(0,0,0,0);
         }
         25% {
-            box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff;
+            box-shadow: -10px 0 20px rgba(200, 0, 255, 0.8), 10px 0 20px rgba(0,0,0,0);
         }
         50% {
-            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+            box-shadow: 10px 0 20px rgba(0, 255, 255, 0.8), -10px 0 20px rgba(0,0,0,0);
         }
         75% {
-            box-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00;
+            box-shadow: 0 -10px 20px rgba(0, 255, 0, 0.8), 0 10px 20px rgba(0,0,0,0);
         }
         100% {
-            box-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+            box-shadow: 0 10px 20px rgba(200, 0, 255, 0.8), 0 -10px 20px rgba(0,0,0,0);
         }
     }
 
-    /* Styling for chat input neon effect and raised effect */
-    .stTextInput > div > input:focus {
-        animation: neon-hue-rotate 2s infinite alternate;
+    /* Apply the darker neon animation when the input is focused */
+    .stChatInput:focus-within {
+        animation: neon-hue-circle 2s infinite ease-in-out;
+        border-radius: 10px;
         border: none;
         outline: none;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 0, 0, 0.4);  /* Raised effect */
-        transform: translateY(-3px);  /* Slight upward lift */
+        /* Make the glow a bit darker */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 0, 0, 0.4);
     }
+
 
     /* Styling for header effect */
 
