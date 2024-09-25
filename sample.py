@@ -54,3 +54,13 @@ custom_css = """
     }
 </style>
 """
+
+
+def display_chat_message(role, content):
+    message_class = "assistant" if role == "assistant" else "user"
+    message_html = f"""
+    <div class="chat-message {message_class}">
+        <div class="message-content">{content}</div>
+    </div>
+    """
+    st.markdown(message_html, unsafe_allow_html=True)
