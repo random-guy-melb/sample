@@ -17,9 +17,8 @@ custom_css = """
         height: 51px !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
-        width: 85% !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
+        width: 100% !important;  /* Changed from 85% to 100% */
+        /* Removed margin-left and margin-right to align elements */
     }
     /* ... (rest of your existing styles for chat input) ... */
 
@@ -28,9 +27,8 @@ custom_css = """
         display: flex;
         margin-bottom: 20px;
         align-items: flex-start;
-        width: 85%;
-        margin-left: auto;
-        margin-right: auto;
+        width: 100%;  /* Changed from 85% to 100% */
+        /* Removed margin-left and margin-right to align elements */
     }
     .chat-message.user {
         flex-direction: row-reverse;
@@ -78,8 +76,8 @@ custom_css = """
     }
     /* Improve overall layout */
     .stApp {
-        max-width: 800px;
-        margin: 0 auto;
+        max-width: none;  /* Removed max-width to allow full width */
+        margin: 0;
     }
 </style>
 """
