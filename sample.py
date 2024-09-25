@@ -80,17 +80,20 @@ custom_css = """
     }
     body {
         padding-top: 120px;  /* Adjust padding to make space for the fixed header */
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
     h1 {
         color: white; /* Header text color */
         font-size: 32px; /* Main header font size */
         margin: 0;  /* Remove margin */
         text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); /* Subtle shadow for raised effect */
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
     h2 {
         color: white; /* Subheader text color */
         font-size: 20px; /* Subheader font size */
         margin: 5px 0 0 0;  /* Reduce margin between header and subheader */
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     
