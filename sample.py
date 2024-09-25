@@ -12,6 +12,13 @@ hide_streamlit_style = """
     """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+ <script type="text/javascript">
+        var link = document.querySelector("link[rel*='icon']");
+        if (link) {
+            link.remove();
+        }
+    </script>
+
 
 custom_css = """
 <style>
