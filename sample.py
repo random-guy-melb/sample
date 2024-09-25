@@ -23,7 +23,7 @@ custom_css = """
     }
     /* ... (rest of your existing styles) ... */
 
-    /* New styles for chat messages */
+    /* Updated styles for chat messages */
     .chat-message {
         display: flex;
         margin-bottom: 15px;
@@ -39,11 +39,11 @@ custom_css = """
         padding: 10px 15px;
         border-radius: 20px;
         max-width: 70%;
-        font-size: 12px;
+        font-size: 12px !important;
         line-height: 1.4;
     }
     .chat-message.assistant .message-content {
-        background-color: #2b2b2b;
+        background-color: #2E4057;  /* Changed from #2b2b2b to a dark blue */
         color: #ffffff;
         border-top-left-radius: 0;
     }
@@ -51,6 +51,12 @@ custom_css = """
         background-color: #066AFF;
         color: #ffffff;
         border-top-right-radius: 0;
+    }
+    /* Ensure consistent font size */
+    .chat-message .message-content p {
+        font-size: 12px !important;
+        margin: 0;
+        padding: 0;
     }
 </style>
 """
