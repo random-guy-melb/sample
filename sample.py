@@ -1,3 +1,18 @@
+
+import streamlit as st
+
+# Hide Streamlit default elements (MainMenu, footer, deploy and running icons)
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stStatus {visibility: hidden;}  /* This hides the "running" and "deploy" icons */
+    </style>
+    """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+
 custom_css = """
 <style>
     /* Existing chat input styles */
@@ -20,6 +35,35 @@ custom_css = """
         width: 100% !important;  /* Changed from 85% to 100% */
         /* Removed margin-left and margin-right to align elements */
     }
+
+    .fixed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to right, #066AFF, #15B392);  /* Gradient from #066AFF to #15B392 */
+        border: 2px solid white;  /* White border around the header */
+        padding: 20px;
+        z-index: 9999;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        text-align: center;  /* Center-align the header */
+    }
+    body {
+        padding-top: 120px;  /* Adjust padding to make space for the fixed header */
+    }
+    h1 {
+        color: white; /* Header text color */
+        font-size: 32px; /* Main header font size */
+        margin: 0;  /* Remove margin */
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4); /* Subtle shadow for raised effect */
+    }
+    h2 {
+        color: white; /* Subheader text color */
+        font-size: 20px; /* Subheader font size */
+        margin: 5px 0 0 0;  /* Reduce margin between header and subheader */
+    }
+
+    
     /* ... (rest of your existing styles for chat input) ... */
 
     /* Updated styles for chat messages */
@@ -81,3 +125,12 @@ custom_css = """
     }
 </style>
 """
+
+
+# Add the header and subheader inside a div with the class fixed-header
+st.markdown('''
+<div class="fixed-header">
+    <h1>Chatbot Header</h1>
+    <h2>Your assistant is here to help</h2>  <!-- Subheading -->
+</div>
+''', unsafe_allow_html=True)
