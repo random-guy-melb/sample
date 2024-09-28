@@ -76,15 +76,18 @@ class RAGApplication:
             ids=[doc_id],
         )
 
-    def search(self, query: str, start_date: datetime = None, end_date: datetime = None, top_k: int = 5) -> List[dict]:
+    def search(self, query: Optional[str] = None, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None, top_k: int = 5) -> List[dict]:
         # BM25 search using Whoosh
         with self.whoosh_index.searcher() as searcher:
-            query_parser = QueryParser("content", self.whoosh_index.schema)
-            content_query = query_parser.parse(query)
+            if query:
+                query_parser = QueryParser("content", self.whoosh_index.schema)
+                content_query = query_parser.parse(query)
+            else:
+                content_query = Every()  # Matches all documents
 
             if start_date and end_date:
                 date_range = DateRange("timestamp", start_date, end_date)
-                final_query = And([content_query, date_range])
+                final_query = content_query & date_range
             else:
                 final_query = content_query
 
@@ -101,12 +104,20 @@ class RAGApplication:
                 ]
             }
 
-        chroma_results = self.chroma_collection.query(
-            query_texts=[query],
-            where=where_clause if where_clause else None,
-            n_results=top_k
-        )
-        chroma_ids = chroma_results['ids'][0]
+        if query:
+            chroma_results = self.chroma_collection.query(
+                query_texts=[query],
+                where=where_clause if where_clause else None,
+                n_results=top_k
+            )
+        else:
+            # If no query is provided, fetch all documents within the date range
+            chroma_results = self.chroma_collection.get(
+                where=where_clause if where_clause else None,
+                limit=top_k
+            )
+
+        chroma_ids = chroma_results['ids'] if isinstance(chroma_results['ids'], list) else chroma_results['ids'][0]
 
         # Combine and deduplicate results
         combined_ids = list(dict.fromkeys(whoosh_ids + chroma_ids))
