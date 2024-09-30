@@ -34,7 +34,7 @@ custom_css = """
     height: 51px !important; /* Reduced by 15% from 60px */
     transition: all 0.3s ease !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important; /* Slightly reduced shadow */
-    width: 100% !important; /* Set width to 85% of original */
+    width: 100% !important;
     margin-right: auto !important;
 }
 
@@ -44,24 +44,18 @@ custom_css = """
     padding: 0 17px !important; /* Reduced by 15% from 20px */
     color: white !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-    font-size: 11.9px !important; /* Reduced by 15% from 14px */
+    font-size: 18px !important; /* Original font size */
     flex-grow: 1 !important;
     resize: none !important;
     min-height: 51px !important; /* Reduced by 15% from 60px */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 51px !important; /* Reduced by 15% from 60px */
+    line-height: 51px !important; /* Match the height for single-line vertical centering */
+    overflow-y: hidden !important; /* Hide vertical scrollbar */
+    white-space: nowrap !important; /* Prevent line breaks */
+    text-overflow: ellipsis !important; /* Show ellipsis for overflowing text */
 }
 
-/* Ensure consistent text alignment when typing */
-.stChatInput textarea,
+/* Ensure text starts from the center when overflowing */
 .stChatInput textarea:not(:placeholder-shown) {
-    line-height: 1.5 !important; /* Adjust this value as needed */
-    padding: 17px !important; /* Reduced by 15% from 20px */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
     text-align: center !important;
 }
 """
