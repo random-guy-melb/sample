@@ -22,7 +22,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 custom_css = """
 <style>
-    .stChatInput {
+   .stChatInput {
     display: flex !important;
     align-items: stretch !important;
     background-color: #1E1E1E !important;
@@ -49,14 +49,21 @@ custom_css = """
     resize: none !important;
     min-height: 51px !important; /* Reduced by 15% from 60px */
     line-height: 51px !important; /* Match the height for single-line vertical centering */
+    overflow-x: auto !important; /* Allow horizontal scrolling */
     overflow-y: hidden !important; /* Hide vertical scrollbar */
     white-space: nowrap !important; /* Prevent line breaks */
-    text-overflow: ellipsis !important; /* Show ellipsis for overflowing text */
+    text-align: left !important; /* Ensure left alignment */
 }
 
-/* Ensure text starts from the center when overflowing */
-.stChatInput textarea:not(:placeholder-shown) {
-    text-align: center !important;
+/* Hide scrollbar for Chrome, Safari and Opera */
+.stChatInput textarea::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.stChatInput textarea {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
 }
 """
 
