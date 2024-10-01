@@ -1,6 +1,11 @@
 from sentence_transformers import CrossEncoder
 import numpy as np
 
+def softmax(x):
+    """Compute softmax values for each set of scores in x."""
+    e_x = np.exp(x - np.max(x))  # Subtract max for numerical stability
+    return e_x / e_x.sum()
+
 # Load the model, here we use our base sized model
 model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
@@ -18,8 +23,8 @@ documents = [
 # Get the scores
 scores = model.predict([(query, doc) for doc in documents])
 
-# Normalize scores to be between 0 and 1
-normalized_scores = (scores - np.min(scores)) / (np.max(scores) - np.min(scores))
+# Apply softmax normalization
+normalized_scores = softmax(scores)
 
 # Create a list of tuples with (document_id, normalized_score, document)
 results = list(enumerate(zip(normalized_scores, documents)))
