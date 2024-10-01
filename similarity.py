@@ -1,38 +1,40 @@
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Tuple
-from collections import Counter
+import numpy as np
 
-def tokenize(text: str) -> List[str]:
-    """Convert text to lowercase and split into words."""
-    return text.lower().split()
+def preprocess_text(text: str) -> str:
+    """Basic preprocessing: lowercase and remove punctuation."""
+    return ''.join(char.lower() for char in text if char.isalnum() or char.isspace())
 
-def calculate_similarity(text1: str, text2: str) -> float:
-    """Calculate the Jaccard similarity between two texts."""
-    words1 = set(tokenize(text1))
-    words2 = set(tokenize(text2))
+def calculate_similarities(input_text: str, options: List[str]) -> List[float]:
+    """Calculate cosine similarities between input_text and options using TF-IDF."""
+    all_texts = [input_text] + options
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(all_texts)
     
-    intersection = len(words1.intersection(words2))
-    union = len(words1.union(words2))
-    
-    return intersection / union if union != 0 else 0
+    # Calculate cosine similarity between input_text and each option
+    similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+    return similarities.tolist()
 
 def find_different_options(input_text: str, options: List[str], cutoff_score: float) -> List[Tuple[str, float]]:
     """Find options that are different from the input text based on a cutoff score."""
-    different_options = []
-    for option in options:
-        similarity = calculate_similarity(input_text, option)
-        if similarity < cutoff_score:
-            different_options.append((option, similarity))
+    similarities = calculate_similarities(input_text, options)
+    different_options = [(option, sim) for option, sim in zip(options, similarities) if sim < cutoff_score]
     return different_options
 
 def analyze_text_similarity(input_text: str, options: List[str], cutoff_score: float = 0.5) -> dict:
     """Analyze text similarity and return a dictionary with results."""
-    different_options = find_different_options(input_text, options, cutoff_score)
+    preprocessed_input = preprocess_text(input_text)
+    preprocessed_options = [preprocess_text(option) for option in options]
+    
+    different_options = find_different_options(preprocessed_input, preprocessed_options, cutoff_score)
     
     return {
         "input_text": input_text,
         "cutoff_score": cutoff_score,
         "total_options": len(options),
-        "different_options": different_options,
+        "different_options": [(options[i], sim) for i, (_, sim) in enumerate(different_options)],
         "num_different_options": len(different_options)
     }
 
@@ -46,7 +48,7 @@ if __name__ == "__main__":
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
     ]
     
-    result = analyze_text_similarity(input_text, options, cutoff_score=0.3)
+    result = analyze_text_similarity(input_text, options, cutoff_score=0.5)
     
     print(f"Input text: {result['input_text']}")
     print(f"Cutoff score: {result['cutoff_score']}")
