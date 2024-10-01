@@ -2,14 +2,17 @@ from sentence_transformers import CrossEncoder
 import numpy as np
 
 def normalize_scores(scores):
-    """Normalize scores using log transformation and min-max scaling."""
-    # Add a small constant to avoid log(0)
-    log_scores = np.log(scores - np.min(scores) + 1e-10)
+    """Normalize scores using standardization and sigmoid function."""
+    # Standardize the scores
+    mean = np.mean(scores)
+    std = np.std(scores)
+    if std == 0:
+        std = 1e-8  # Avoid division by zero
+    standardized = (scores - mean) / std
     
-    # Apply min-max scaling to bring scores to [0, 1] range
-    normalized = (log_scores - np.min(log_scores)) / (np.max(log_scores) - np.min(log_scores))
-    
-    return normalized
+    # Apply sigmoid function to bound between 0 and 1
+    return expit(standardized)
+
 
 # Load the model, here we use our base sized model
 model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
