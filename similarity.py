@@ -1,79 +1,35 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import torch
-from typing import List, Tuple
+from sentence_transformers import CrossEncoder
 import numpy as np
 
+# Load the model, here we use our base sized model
+model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
-def load_model_and_tokenizer():
-    """Load the pre-trained cross-encoder model and tokenizer."""
-    model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    return model, tokenizer
+# Example query and documents
+query = "Who wrote 'To Kill a Mockingbird'?"
+documents = [
+    "The novel 'Moby-Dick' was written by Herman Melville and first published in 1851. It is considered a masterpiece of American literature and deals with complex themes of obsession, revenge, and the conflict between good and evil.",
+    "Harper Lee, an American novelist widely known for her novel 'To Kill a Mockingbird', was born in 1926 in Monroeville, Alabama. She received the Pulitzer Prize for Fiction in 1961.",
+    "Jane Austen was an English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.",
+    "'To Kill a Mockingbird' is a novel by Harper Lee published in 1960. It was immediately successful, winning the Pulitzer Prize, and has become a classic of modern American literature.",
+    "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era.",
+    "'The Great Gatsby', a novel written by American author F. Scott Fitzgerald, was published in 1925. The story is set in the Jazz Age and follows the life of millionaire Jay Gatsby and his pursuit of Daisy Buchanan."
+]
 
+# Get the scores
+scores = model.predict([(query, doc) for doc in documents])
 
-def normalize_scores(scores: List[float]) -> List[float]:
-    """Normalize scores to a 0-1 range using min-max normalization."""
-    min_score = min(scores)
-    max_score = max(scores)
-    if min_score == max_score:
-        return [1.0 for _ in scores]  # All scores are the same
-    return [(score - min_score) / (max_score - min_score) for score in scores]
+# Normalize scores to be between 0 and 1
+normalized_scores = (scores - np.min(scores)) / (np.max(scores) - np.min(scores))
 
+# Create a list of tuples with (document_id, normalized_score, document)
+results = list(enumerate(zip(normalized_scores, documents)))
 
-def calculate_similarities(model, tokenizer, input_text: str, options: List[str]) -> List[float]:
-    """Calculate normalized similarity scores between input_text and options using the cross-encoder."""
-    pairs = [[input_text, option] for option in options]
-    features = tokenizer(pairs, padding=True, truncation=True, return_tensors="pt")
+# Sort the results by score in descending order
+results.sort(key=lambda x: x[1][0], reverse=True)
 
-    with torch.no_grad():
-        scores = model(**features).logits.squeeze().tolist()
-
-    return normalize_scores(scores)
-
-
-def find_different_options(model, tokenizer, input_text: str, options: List[str], cutoff_score: float) -> List[
-    Tuple[str, float]]:
-    """Find options that are different from the input text based on a cutoff score."""
-    similarities = calculate_similarities(model, tokenizer, input_text, options)
-    different_options = [(option, sim) for option, sim in zip(options, similarities) if sim < cutoff_score]
-    return different_options
-
-
-def analyze_text_similarity(input_text: str, options: List[str], cutoff_score: float = 0.5) -> dict:
-    """Analyze text similarity and return a dictionary with results."""
-    model, tokenizer = load_model_and_tokenizer()
-    different_options = find_different_options(model, tokenizer, input_text, options, cutoff_score)
-
-    return {
-        "input_text": input_text,
-        "cutoff_score": cutoff_score,
-        "total_options": len(options),
-        "different_options": different_options,
-        "num_different_options": len(different_options)
-    }
-
-
-# Example usage
-if __name__ == "__main__":
-    input_text = "The quick brown fox jumps over the lazy dog"
-    options = [
-        "The quick brown fox jumps over the lazy dog",
-        "A fast auburn canine leaps above the indolent hound",
-        "The slow green turtle crawls under the busy cat",
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
-    ]
-
-    result = analyze_text_similarity(input_text, options, cutoff_score=0.5)
-
-    print(f"Input text: {result['input_text']}")
-    print(f"Cutoff score: {result['cutoff_score']}")
-    print(f"Total options analyzed: {result['total_options']}")
-    print(f"Number of different options: {result['num_different_options']}")
-
-    if result['different_options']:
-        print("\nDifferent options:")
-        for option, similarity in result['different_options']:
-            print(f"- {option} (similarity: {similarity:.2f})")
-    else:
-        print("\nNo options found below the cutoff score.")
+# Print the results
+for doc_id, (score, document) in results:
+    print(f"Document ID: {doc_id}")
+    print(f"Score: {score:.4f}")
+    print(f"Document: {document}")
+    print()
