@@ -1,40 +1,35 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer, util
 from typing import List, Tuple
-import numpy as np
 
-def preprocess_text(text: str) -> str:
-    """Basic preprocessing: lowercase and remove punctuation."""
-    return ''.join(char.lower() for char in text if char.isalnum() or char.isspace())
+def load_model():
+    """Load the pre-trained sentence transformer model."""
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
-def calculate_similarities(input_text: str, options: List[str]) -> List[float]:
-    """Calculate cosine similarities between input_text and options using TF-IDF."""
-    all_texts = [input_text] + options
-    vectorizer = TfidfVectorizer()
-    tfidf_matrix = vectorizer.fit_transform(all_texts)
+def calculate_similarities(model, input_text: str, options: List[str]) -> List[float]:
+    """Calculate cosine similarities between input_text and options using sentence embeddings."""
+    # Encode all sentences
+    embeddings = model.encode([input_text] + options)
     
     # Calculate cosine similarity between input_text and each option
-    similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
-    return similarities.tolist()
+    similarities = util.pytorch_cos_sim(embeddings[0], embeddings[1:]).squeeze().tolist()
+    return similarities
 
-def find_different_options(input_text: str, options: List[str], cutoff_score: float) -> List[Tuple[str, float]]:
+def find_different_options(model, input_text: str, options: List[str], cutoff_score: float) -> List[Tuple[str, float]]:
     """Find options that are different from the input text based on a cutoff score."""
-    similarities = calculate_similarities(input_text, options)
+    similarities = calculate_similarities(model, input_text, options)
     different_options = [(option, sim) for option, sim in zip(options, similarities) if sim < cutoff_score]
     return different_options
 
 def analyze_text_similarity(input_text: str, options: List[str], cutoff_score: float = 0.5) -> dict:
     """Analyze text similarity and return a dictionary with results."""
-    preprocessed_input = preprocess_text(input_text)
-    preprocessed_options = [preprocess_text(option) for option in options]
-    
-    different_options = find_different_options(preprocessed_input, preprocessed_options, cutoff_score)
+    model = load_model()
+    different_options = find_different_options(model, input_text, options, cutoff_score)
     
     return {
         "input_text": input_text,
         "cutoff_score": cutoff_score,
         "total_options": len(options),
-        "different_options": [(options[i], sim) for i, (_, sim) in enumerate(different_options)],
+        "different_options": different_options,
         "num_different_options": len(different_options)
     }
 
