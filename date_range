@@ -1,0 +1,45 @@
+from datetime import datetime, timedelta
+import calendar
+
+
+def create_monthly_date_ranges(timestamps):
+    if not timestamps:
+        return []
+
+    # Convert numeric timestamps to datetime objects and sort them
+    dates = sorted([datetime.utcfromtimestamp(ts) for ts in timestamps])
+
+    start_date = dates[0]
+    end_date = dates[-1]
+
+    date_ranges = []
+    current_date = start_date
+
+    while current_date <= end_date:
+        month_start = current_date.replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+
+        range_start = max(current_date, month_start)
+        range_end = min(end_date, month_end)
+
+        date_range = f"{range_start.strftime('%d-%B-%Y')} to {range_end.strftime('%d-%B-%Y')}"
+        date_ranges.append(date_range)
+
+        current_date = (month_end + timedelta(days=1))
+
+    return date_ranges
+
+
+
+from datetime import datetime, timezone
+
+# Create a datetime object for June 14, 2024 at 00:00:00 UTC
+start = datetime(2024, 6, 11, tzinfo=timezone.utc)
+end = datetime(2024, 10, 29, tzinfo=timezone.utc)
+# Convert to Unix timestamp
+start_ts = int(start.timestamp())
+end_ts = int(end.timestamp())
+# Example usage
+timestamps = [start_ts, end_ts]  # 15-Jul-2024 and 12-Sep-2024 in Unix time
+result = create_monthly_date_ranges(timestamps)
+print(result)
