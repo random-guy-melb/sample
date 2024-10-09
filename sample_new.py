@@ -87,29 +87,74 @@ def fetch_channels(client):
             break
     return channels
 
-def resolve_names(text, users, channels):
-    """Replace user and channel IDs with their respective names."""
+def fetch_usergroups(client):
+    """Fetch all user groups in the workspace."""
+    usergroups_url = 'https://slack.com/api/usergroups.list'
+    usergroups = {}
+    data = make_request_with_backoff(client, usergroups_url, {})
+    if data and data['ok']:
+        for group in data['usergroups']:
+            usergroups[group['id']] = group['handle']
+    else:
+        print("Error fetching user groups. Some user group IDs may not be resolved.")
+    return usergroups
+
+def resolve_names(text, users, channels, usergroups):
+    """Replace user, channel, and user group IDs with their respective names."""
     def replace_id(match):
         id = match.group(1)
         if id.startswith('U'):
             return f"@{users.get(id, id)}"
         elif id.startswith('C'):
             return f"#{channels.get(id, id)}"
+        elif id.startswith('S'):
+            return f"@{usergroups.get(id, id)}"
         return match.group(0)
     
-    return re.sub(r'<@(U\w+)>', replace_id, text)
+    return re.sub(r'<(@U\w+|#C\w+|!subteam\^S\w+)>', replace_id, text)
 
-# ... (rest of the setup code remains the same)
+# Replace with your actual Slack bot token
+slack_token = 'YOUR_SLACK_BOT_TOKEN'
+
+# Replace with your actual channel ID
+channel_id = 'C04TSF0'
+
+# Set your date range
+start_date = datetime(2024, 9, 1)  # Year, Month, Day
+end_date = datetime(2024, 9, 18)   # Year, Month, Day
+
+# Convert to Unix timestamps
+oldest = unix_timestamp(start_date)
+latest = unix_timestamp(end_date)
+
+# Base API URL
+base_url = 'https://slack.com/api/conversations.history'
+
+# Parameters for the API request
+params = {
+    'channel': channel_id,
+    'oldest': oldest,
+    'latest': latest,
+    'limit': 100  # Adjust as needed
+}
+
+# Headers for authentication
+headers = {
+    'Authorization': f'Bearer {slack_token}',
+    'Content-Type': 'application/x-www-form-urlencoded'
+}
 
 # Create a session for more efficient requests
 session = requests.Session()
 session.headers.update(headers)
 
-# Fetch users and channels
+# Fetch users, channels, and user groups
 print("Fetching user information...")
 users = fetch_users(session)
 print("Fetching channel information...")
 channels = fetch_channels(session)
+print("Fetching user group information...")
+usergroups = fetch_usergroups(session)
 
 all_threads = []
 
@@ -139,7 +184,7 @@ for thread in all_threads:
     user_id = thread[0].get('user', 'Unknown')
     user_name = users.get(user_id, user_id)
     print(f"Thread started by: {user_name}")
-    print(f"Original message: {resolve_names(thread[0]['text'], users, channels)}")
+    print(f"Original message: {resolve_names(thread[0]['text'], users, channels, usergroups)}")
     print(f"Timestamp: {thread[0]['ts']}")
     if len(thread) > 1:
         print("Replies:")
@@ -147,7 +192,7 @@ for thread in all_threads:
             reply_user_id = reply.get('user', 'Unknown')
             reply_user_name = users.get(reply_user_id, reply_user_id)
             print(f"  User: {reply_user_name}")
-            print(f"  Message: {resolve_names(reply['text'], users, channels)}")
+            print(f"  Message: {resolve_names(reply['text'], users, channels, usergroups)}")
             print(f"  Timestamp: {reply['ts']}")
     print("---")
 
