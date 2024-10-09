@@ -103,20 +103,20 @@ def resolve_names(text, users, channels, usergroups):
     """Replace user, channel, and user group IDs with their respective names."""
     def replace_id(match):
         full_match = match.group(0)
-        id_type = match.group(1)
-        id_value = match.group(2)
-
-        if id_type == '@U':
-            return f"@{users.get(id_value, id_value)}"
-        elif id_type == '#C':
-            return f"#{channels.get(id_value, id_value)}"
-        elif id_type == '!subteam^S':
-            return f"@{usergroups.get(id_value, id_value)}"
+        if match.group(1) == '@':
+            user_id = match.group(2)
+            return f"@{users.get(user_id, user_id)}"
+        elif match.group(1) == '#':
+            channel_id = match.group(2)
+            return f"#{channels.get(channel_id, channel_id)}"
+        elif match.group(1) == '!':
+            group_id = match.group(2)
+            return f"@{usergroups.get(group_id, group_id)}"
         else:
             return full_match  # Return the original text if no match
 
-    # Updated regex pattern to capture different types of mentions
-    pattern = r'<([@#])(U[A-Z0-9]+|C[A-Z0-9]+)>|<!subteam\^(S[A-Z0-9]+)>'
+    # Updated regex pattern to capture all types of mentions in a single pattern
+    pattern = r'<([@#!])(U[A-Z0-9]+|C[A-Z0-9]+|subteam\^S[A-Z0-9]+)>'
     return re.sub(pattern, replace_id, text)
 
 # Replace with your actual Slack bot token
