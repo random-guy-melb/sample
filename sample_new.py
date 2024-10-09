@@ -116,7 +116,7 @@ def resolve_names(text, users, channels, usergroups):
             return full_match  # Return the original text if no match
 
     # Updated regex pattern to capture different types of mentions
-    pattern = r'<([@#!])([UCS][A-Z0-9]+)((?:\|[^>]+)?)>'
+    pattern = r'<([@#])(U[A-Z0-9]+|C[A-Z0-9]+)>|<!subteam\^(S[A-Z0-9]+)>'
     return re.sub(pattern, replace_id, text)
 
 # Replace with your actual Slack bot token
