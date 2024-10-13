@@ -93,6 +93,9 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
             return (date.replace(day=1),
                     f"{date.replace(day=1).strftime('%d-%B-%Y')} to {date.replace(day=calendar.monthrange(date.year, date.month)[1]).strftime('%d-%B-%Y')}")
 
+    def split_and_strip(value):
+        return [item.strip() for item in value.split(',')] if value else []
+
     start_date = parse_date(start_date) if start_date else None
     end_date = parse_date(end_date) if end_date else None
 
@@ -114,8 +117,8 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
         sort_key, date_range_key = get_date_range_key(date, start_date, end_date)
 
         category = row.get('Category')
-        groupid = row.get('GroupID')
-        row_tags = [tag.strip() for tag in row['Tag'].split(',')] if row.get('Tag') else []
+        groupids = split_and_strip(row.get('GroupID', ''))
+        row_tags = split_and_strip(row.get('Tag', ''))
 
         if category:
             fields_present.add('Category')
@@ -123,11 +126,12 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
                 category_count[category]["total"] += 1
                 category_count[category]["date_ranges"][(sort_key, date_range_key)] += 1
 
-        if groupid:
+        if groupids:
             fields_present.add('GroupID')
-            if not group_ids or groupid in group_ids:
-                groupid_count[groupid]["total"] += 1
-                groupid_count[groupid]["date_ranges"][(sort_key, date_range_key)] += 1
+            for groupid in groupids:
+                if not group_ids or groupid in group_ids:
+                    groupid_count[groupid]["total"] += 1
+                    groupid_count[groupid]["date_ranges"][(sort_key, date_range_key)] += 1
 
         if row_tags:
             fields_present.add('Tag')
@@ -141,14 +145,16 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
                 category_tag_count[category][tag]["total"] += 1
                 category_tag_count[category][tag]["date_ranges"][(sort_key, date_range_key)] += 1
 
-        if category and groupid:
-            category_groupid_count[category][groupid]["total"] += 1
-            category_groupid_count[category][groupid]["date_ranges"][(sort_key, date_range_key)] += 1
+        if category and groupids:
+            for groupid in groupids:
+                category_groupid_count[category][groupid]["total"] += 1
+                category_groupid_count[category][groupid]["date_ranges"][(sort_key, date_range_key)] += 1
 
-        if groupid and row_tags:
-            for tag in row_tags:
-                groupid_tag_count[groupid][tag]["total"] += 1
-                groupid_tag_count[groupid][tag]["date_ranges"][(sort_key, date_range_key)] += 1
+        if groupids and row_tags:
+            for groupid in groupids:
+                for tag in row_tags:
+                    groupid_tag_count[groupid][tag]["total"] += 1
+                    groupid_tag_count[groupid][tag]["date_ranges"][(sort_key, date_range_key)] += 1
 
     summary = []
 
