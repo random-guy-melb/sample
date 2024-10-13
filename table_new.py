@@ -83,7 +83,7 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
     def parse_date(date_str):
         return datetime.strptime(date_str, "%d/%m/%Y")
 
-    def get_date_range_key(date, start, end):
+        def get_date_range_key(date, start, end):
         if date.month == start.month and date.year == start.year:
             return (start,
                     f"{start.strftime('%d-%B-%Y')} to {date.replace(day=calendar.monthrange(date.year, date.month)[1]).strftime('%d-%B-%Y')}")
@@ -129,6 +129,14 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
         sorted_counts = sorted(counts.items(), key=lambda x: x[0][0])
         return ", ".join([f'"{date_range}": {count}' for (_, date_range), count in sorted_counts])
 
+    def generate_total_summary(count_dict):
+        total_records = sum(info["total"] for info in count_dict.values())
+        total_date_ranges = defaultdict(int)
+        for info in count_dict.values():
+            for (sort_key, date_range), count in info["date_ranges"].items():
+                total_date_ranges[(sort_key, date_range)] += count
+        return total_records, format_date_range_count(total_date_ranges)
+
     # Category summary
     if not categories:
         summary.append("Category:")
@@ -141,6 +149,10 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
             info = category_count.get(category, {"total": 0, "date_ranges": {}})
             summary.append(f'Category:"{category}" has total number of records: {info["total"]}, '
                            f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+
+    total_category_records, total_category_date_ranges = generate_total_summary(category_count)
+    summary.append(f"Categories mentioned have combined total number of records: {total_category_records}, "
+                   f"date range wise record count: {total_category_date_ranges}")
 
     # GroupID summary
     if not group_ids:
@@ -155,6 +167,10 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
             summary.append(f'GroupID:"{groupid}" has total number of records: {info["total"]}, '
                            f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
 
+    total_groupid_records, total_groupid_date_ranges = generate_total_summary(groupid_count)
+    summary.append(f"GroupIDs mentioned have combined total number of records: {total_groupid_records}, "
+                   f"date range wise record count: {total_groupid_date_ranges}")
+
     # Tag summary
     if not tags:
         summary.append("\nTag:")
@@ -167,6 +183,10 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
             info = tag_count.get(tag, {"total": 0, "date_ranges": {}})
             summary.append(f'Tag:"{tag}" has total number of records: {info["total"]}, '
                            f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+
+    total_tag_records, total_tag_date_ranges = generate_total_summary(tag_count)
+    summary.append(f"Tags mentioned have combined total number of records: {total_tag_records}, "
+                   f"date range wise record count: {total_tag_date_ranges}")
 
     # Date range info
     date_format = "%d-%B-%Y"
