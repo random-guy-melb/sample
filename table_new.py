@@ -100,28 +100,55 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
     groupid_count = defaultdict(lambda: {"total": 0, "date_ranges": defaultdict(int)})
     tag_count = defaultdict(lambda: {"total": 0, "date_ranges": defaultdict(int)})
 
+    category_tag_count = defaultdict(lambda: defaultdict(lambda: {"total": 0, "date_ranges": defaultdict(int)}))
+    category_groupid_count = defaultdict(lambda: defaultdict(lambda: {"total": 0, "date_ranges": defaultdict(int)}))
+    groupid_tag_count = defaultdict(lambda: defaultdict(lambda: {"total": 0, "date_ranges": defaultdict(int)}))
+
+    fields_present = set()
+
     for row in data:
         date = parse_date(row['Date'])
         if (start_date and date < start_date) or (end_date and date > end_date):
             continue
 
         sort_key, date_range_key = get_date_range_key(date, start_date, end_date)
-        category = row['Category']
-        groupid = row.get('GroupID', 'Unknown')
-        row_tags = [tag.strip() for tag in row['Tag'].split(',')] if row['Tag'] else ['Untagged']
 
-        if not categories or category in categories:
-            category_count[category]["total"] += 1
-            category_count[category]["date_ranges"][(sort_key, date_range_key)] += 1
+        category = row.get('Category')
+        groupid = row.get('GroupID')
+        row_tags = [tag.strip() for tag in row['Tag'].split(',')] if row.get('Tag') else []
 
-        if not group_ids or groupid in group_ids:
-            groupid_count[groupid]["total"] += 1
-            groupid_count[groupid]["date_ranges"][(sort_key, date_range_key)] += 1
+        if category:
+            fields_present.add('Category')
+            if not categories or category in categories:
+                category_count[category]["total"] += 1
+                category_count[category]["date_ranges"][(sort_key, date_range_key)] += 1
 
-        for tag in row_tags:
-            if not tags or tag in tags:
-                tag_count[tag]["total"] += 1
-                tag_count[tag]["date_ranges"][(sort_key, date_range_key)] += 1
+        if groupid:
+            fields_present.add('GroupID')
+            if not group_ids or groupid in group_ids:
+                groupid_count[groupid]["total"] += 1
+                groupid_count[groupid]["date_ranges"][(sort_key, date_range_key)] += 1
+
+        if row_tags:
+            fields_present.add('Tag')
+            for tag in row_tags:
+                if not tags or tag in tags:
+                    tag_count[tag]["total"] += 1
+                    tag_count[tag]["date_ranges"][(sort_key, date_range_key)] += 1
+
+        if category and row_tags:
+            for tag in row_tags:
+                category_tag_count[category][tag]["total"] += 1
+                category_tag_count[category][tag]["date_ranges"][(sort_key, date_range_key)] += 1
+
+        if category and groupid:
+            category_groupid_count[category][groupid]["total"] += 1
+            category_groupid_count[category][groupid]["date_ranges"][(sort_key, date_range_key)] += 1
+
+        if groupid and row_tags:
+            for tag in row_tags:
+                groupid_tag_count[groupid][tag]["total"] += 1
+                groupid_tag_count[groupid][tag]["date_ranges"][(sort_key, date_range_key)] += 1
 
     summary = []
 
@@ -137,56 +164,60 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
                 total_date_ranges[(sort_key, date_range)] += count
         return total_records, format_date_range_count(total_date_ranges)
 
-    # Category summary
-    if not categories:
-        summary.append("Category:")
-        for category, info in category_count.items():
-            summary.append(f'Category:"{category}" has total number of records: {info["total"]}, '
-                           f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
-    else:
-        summary.append("Category (Filtered):")
-        for category in categories:
-            info = category_count.get(category, {"total": 0, "date_ranges": {}})
-            summary.append(f'Category:"{category}" has total number of records: {info["total"]}, '
-                           f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+    def add_summary_section(title, count_dict, filter_list=None):
+        summary.append(f"\n{title}:")
+        if not filter_list:
+            for item, info in count_dict.items():
+                summary.append(f'{title}:"{item}" has total number of records: {info["total"]}, '
+                               f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+        else:
+            for item in filter_list:
+                info = count_dict.get(item, {"total": 0, "date_ranges": {}})
+                summary.append(f'{title}:"{item}" has total number of records: {info["total"]}, '
+                               f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
 
-    total_category_records, total_category_date_ranges = generate_total_summary(category_count)
-    summary.append(f"Categories mentioned have combined total number of records: {total_category_records}, "
-                   f"date range wise record count: {total_category_date_ranges}")
+        total_records, total_date_ranges = generate_total_summary(count_dict)
+        summary.append(f"{title}s mentioned have combined total number of records: {total_records}, "
+                       f"date range wise record count: {total_date_ranges}")
 
-    # GroupID summary
-    if not group_ids:
-        summary.append("\nGroupID:")
-        for groupid, info in groupid_count.items():
-            summary.append(f'GroupID:"{groupid}" has total number of records: {info["total"]}, '
-                           f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
-    else:
-        summary.append("\nGroupID (Filtered):")
-        for groupid in group_ids:
-            info = groupid_count.get(groupid, {"total": 0, "date_ranges": {}})
-            summary.append(f'GroupID:"{groupid}" has total number of records: {info["total"]}, '
-                           f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+    # Individual summaries
+    if 'Category' in fields_present:
+        add_summary_section("Category", category_count, categories)
+    if 'GroupID' in fields_present:
+        add_summary_section("GroupID", groupid_count, group_ids)
+    if 'Tag' in fields_present:
+        add_summary_section("Tag", tag_count, tags)
 
-    total_groupid_records, total_groupid_date_ranges = generate_total_summary(groupid_count)
-    summary.append(f"GroupIDs mentioned have combined total number of records: {total_groupid_records}, "
-                   f"date range wise record count: {total_groupid_date_ranges}")
+    def add_association_summary(title, count_dict, filter_list1=None, filter_list2=None):
+        summary.append(f"\n{title}:")
+        total_associations = 0
+        total_date_ranges = defaultdict(int)
+        for item1, items_dict in count_dict.items():
+            if not filter_list1 or item1 in filter_list1:
+                summary.append(
+                    f'{title.split("-")[0]}:"{item1}" is associated with the following {title.split("-")[1]}s:')
+                for item2, info in items_dict.items():
+                    if not filter_list2 or item2 in filter_list2:
+                        summary.append(
+                            f'  {title.split("-")[1]}:"{item2}" has total number of records: {info["total"]}, '
+                            f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+                        total_associations += info["total"]
+                        for (sort_key, date_range), count in info["date_ranges"].items():
+                            total_date_ranges[(sort_key, date_range)] += count
+        summary.append(f"{title}s have combined total number of records: {total_associations}, "
+                       f"date range wise record count: {format_date_range_count(total_date_ranges)}")
 
-    # Tag summary
-    if not tags:
-        summary.append("\nTag:")
-        for tag, info in tag_count.items():
-            summary.append(f'Tag:"{tag}" has total number of records: {info["total"]}, '
-                           f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
-    else:
-        summary.append("\nTag (Filtered):")
-        for tag in tags:
-            info = tag_count.get(tag, {"total": 0, "date_ranges": {}})
-            summary.append(f'Tag:"{tag}" has total number of records: {info["total"]}, '
-                           f'date range wise record count: {format_date_range_count(info["date_ranges"])}')
+    # Category-Tag associations
+    if 'Category' in fields_present and 'Tag' in fields_present:
+        add_association_summary("Category-Tag", category_tag_count, categories, tags)
 
-    total_tag_records, total_tag_date_ranges = generate_total_summary(tag_count)
-    summary.append(f"Tags mentioned have combined total number of records: {total_tag_records}, "
-                   f"date range wise record count: {total_tag_date_ranges}")
+    # Category-GroupID associations
+    if 'Category' in fields_present and 'GroupID' in fields_present:
+        add_association_summary("Category-GroupID", category_groupid_count, categories, group_ids)
+
+    # GroupID-Tag associations
+    if 'GroupID' in fields_present and 'Tag' in fields_present:
+        add_association_summary("GroupID-Tag", groupid_tag_count, group_ids, tags)
 
     # Date range info
     date_format = "%d-%B-%Y"
