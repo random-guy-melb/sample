@@ -83,7 +83,7 @@ def generate_summary_with_date_range(data, start_date=None, end_date=None, categ
     def parse_date(date_str):
         return datetime.strptime(date_str, "%d/%m/%Y")
 
-        def get_date_range_key(date, start, end):
+    def get_date_range_key(date, start, end):
         if date.month == start.month and date.year == start.year:
             return (start,
                     f"{start.strftime('%d-%B-%Y')} to {date.replace(day=calendar.monthrange(date.year, date.month)[1]).strftime('%d-%B-%Y')}")
