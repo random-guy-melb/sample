@@ -1,0 +1,37 @@
+import re
+
+def extract_sentences(text):
+    # Regular expression to match the header (names and dates up to the colon)
+    header_pattern = re.compile(r'^(?:.*?\|)?\s*\d{4}-\d{2}-\d{2}:\s*')
+    
+    # Replace headers with an empty string
+    lines = []
+    for line in text.strip().split('\n'):
+        # Remove headers if present
+        cleaned_line = header_pattern.sub('', line)
+        lines.append(cleaned_line)
+
+    # Combine the lines into one text block
+    combined_text = ' '.join(lines)
+    
+    # Remove extra spaces
+    combined_text = re.sub(r'\s+', ' ', combined_text).strip()
+
+    # Regular expression to split text into sentences
+    sentence_endings = re.compile(r'(?<=[.!?])\s+')
+
+    # Split the combined text into sentences
+    sentences = sentence_endings.split(combined_text)
+
+    # Strip whitespace from each sentence
+    sentences = [s.strip() for s in sentences if s.strip()]
+
+    return sentences
+
+# Sample data
+sample_data = """John Smith | 2024-12-08: Hi how are you?
+I am John
+Agent | 2024-12-09: Hello John, I am good."""
+
+result = extract_sentences(sample_data)
+print(result)
