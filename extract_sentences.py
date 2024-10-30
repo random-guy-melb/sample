@@ -18,6 +18,9 @@ def process_text(text):
         if not part.strip():
             continue
             
+        # Replace multiple newlines with space
+        part = ' '.join(line.strip() for line in part.splitlines() if line.strip())
+            
         # Split into potential date part and message
         if ':' in part:
             date_part = part.split(':')[0].strip()
@@ -37,5 +40,6 @@ def process_text(text):
                 processed_parts.append(processed_line)
 
     return processed_parts
+
 
 result = process_text(text)
