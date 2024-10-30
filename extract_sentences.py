@@ -1,36 +1,41 @@
-def extract_sentences(text):
-    sentences = []
-    lines = text.strip().split('\n')
-    buffer = ''
+import re
 
-    for line in lines:
-        # Append the line to the buffer with a space
-        buffer += ' ' + line.strip()
-        # Check if '|' is in the line
-        if '|' in line:
-            # Split the buffer at the last colon after '|'
-            if ':' in buffer:
-                parts = buffer.rsplit(':', 1)
-                if len(parts) == 2:
-                    message = parts[1].strip()
-                    if message:
-                        sentences.append(message)
-            # Reset the buffer after processing
-            buffer = ''
-        else:
-            # If '|' is not in the line, continue accumulating
+def process_text(text):
+    # Split the text by '|'
+    parts = text.split('|')
+    
+    # Process each part to remove names but keep dates
+    processed_parts = []
+    
+    # Regular expressions for date patterns
+    date_patterns = [
+        r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
+        r'\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?'  # YYYY-MM-DD HH:MM:SS[.microseconds]
+    ]
+    
+    for part in parts:
+        # Skip empty parts
+        if not part.strip():
             continue
+            
+        # Split into potential date part and message
+        if ':' in part:
+            date_part = part.split(':')[0].strip()
+            message = ':'.join(part.split(':')[1:]).strip()
+            
+            # Find date using regex patterns
+            date_found = None
+            for pattern in date_patterns:
+                match = re.search(pattern, date_part)
+                if match:
+                    date_found = match.group()
+                    break
+            
+            # If date is found, add it with the message
+            if date_found:
+                processed_line = f"{date_found}: {message}" if message else date_found
+                processed_parts.append(processed_line)
 
-    # Handle any remaining text in the buffer
-    if buffer.strip():
-        sentences.append(buffer.strip())
+    return processed_parts
 
-    return sentences
-
-# Sample data
-sample_data = """John Smith | 2024-12-08: Hi how are you?
-I am John
-Agent | 2024-12-09: Hello John, I am good."""
-
-result = extract_sentences(sample_data)
-print(result)
+result = process_text(text)
