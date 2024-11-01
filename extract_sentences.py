@@ -1,18 +1,26 @@
 import re
 
-def extract_messages(processed_list):
-    messages = []
+def extract_dates_and_messages(processed_list):
+    date_message_pairs = []
     # Regular expression patterns to match the starting date and colon
     date_patterns = [
-        r'^\s*\d{2}/\d{2}/\d{4}\s*:\s*',  # MM/DD/YYYY
-        r'^\s*\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?\s*:\s*'  # YYYY-MM-DD HH:MM:SS[.microseconds]
+        r'^\s*(\d{2}/\d{2}/\d{4})\s*:\s*(.*)',  # MM/DD/YYYY
+        r'^\s*(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s*:\s*(.*)'  # YYYY-MM-DD HH:MM:SS[.microseconds]
     ]
     for line in processed_list:
-        # Remove the date and colon at the beginning of each line
+        date_found = False
         for pattern in date_patterns:
-            line = re.sub(pattern, '', line)
-        messages.append(line.strip())
-    return messages
+            match = re.match(pattern, line)
+            if match:
+                date = match.group(1)
+                message = match.group(2).strip()
+                date_message_pairs.append((date, message))
+                date_found = True
+                break
+        if not date_found:
+            # If no date is found, you can decide how to handle it
+            date_message_pairs.append((None, line.strip()))
+    return date_message_pairs
 
 
 def process_text(text):
