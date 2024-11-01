@@ -1,5 +1,19 @@
 import re
 
+def extract_messages(processed_list):
+    messages = []
+    # Regular expression patterns to match the starting date and colon
+    date_patterns = [
+        r'^\s*\d{2}/\d{2}/\d{4}\s*:\s*',  # MM/DD/YYYY
+        r'^\s*\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?\s*:\s*'  # YYYY-MM-DD HH:MM:SS[.microseconds]
+    ]
+    for line in processed_list:
+        # Remove the date and colon at the beginning of each line
+        for pattern in date_patterns:
+            line = re.sub(pattern, '', line)
+        messages.append(line.strip())
+    return messages
+
 
 def process_text(text):
     # Split the text by '|'
