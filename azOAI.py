@@ -2,9 +2,10 @@ from time import time
 from typing import Optional
 from openai import AzureOpenAI
 from threading import Lock
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+import openai
 import logging
 import os
-import weakref
 
 logger = logging.getLogger(__name__)
 
@@ -71,18 +72,20 @@ class AzureOpenAIClient:
         """
         Initialize with a per-instance managed client
         """
-        # Each instance gets its own managed client
         self._managed_client = ManagedAzureOpenAIClient(connection_timeout=20)
 
     @property
     def CLIENT(self) -> AzureOpenAI:
+        if not hasattr(self, '_managed_client') or self._managed_client is None:
+            self._managed_client = ManagedAzureOpenAIClient(connection_timeout=20)
         return self._managed_client.client
 
     def close(self):
         """
         Close this instance's connection
         """
-        self._managed_client.close()
+        if hasattr(self, '_managed_client') and self._managed_client is not None:
+            self._managed_client.close()
 
     def __del__(self):
         """
@@ -92,16 +95,27 @@ class AzureOpenAIClient:
 
 class AzureOpenAIEmbeddings(EmbeddingFunction, AzureOpenAIClient):
     def get_embeddings(self, texts):
-        response = self.CLIENT.embeddings.create(input=texts, model=config.model_embedding)
-        embeddings = [data.embedding for data in response.data]
-        return embeddings
+        try:
+            response = self.CLIENT.embeddings.create(input=texts, model=config.model_embedding)
+            embeddings = [data.embedding for data in response.data]
+            return embeddings
+        except Exception as e:
+            logger.error(f"Error in get_embeddings: {str(e)}")
+            raise
 
-    @retry(wait=wait_exponential(multiplier=1, min=4, max=10), stop=stop_after_attempt(5))
+    @retry(
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        stop=stop_after_attempt(5),
+        retry=retry_if_exception_type((openai.APIError, openai.APIConnectionError, openai.RateLimitError))
+    )
     def get_embeddings_with_retry(self, texts):
         try:
             return self.get_embeddings(texts)
-        except openai.error.OpenAIError as e:
-            logger.error(f"Error fetching embeddings: {e}")
+        except (openai.APIError, openai.APIConnectionError, openai.RateLimitError) as e:
+            logger.error(f"Retryable error fetching embeddings: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Non-retryable error fetching embeddings: {e}")
             raise
 
     def __call__(self, texts):
@@ -114,34 +128,51 @@ class AzureOpenAIChat(AzureOpenAIClient):
         super().__init__()
         self.SYS_PROMPT = '"""""Help the user find the answer they are looking for.""""'
 
-    @retry(wait=wait_exponential(multiplier=1, min=4, max=10), stop=stop_after_attempt(5))
+    @retry(
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        stop=stop_after_attempt(5),
+        retry=retry_if_exception_type((openai.APIError, openai.APIConnectionError, openai.RateLimitError))
+    )
     def generate_response_with_retry(self, user_query):
         try:
             return self.generate_response(user_query)
-        except openai.error.OpenAIError as e:
-            logger.error(f"Error fetching response: {e}")
+        except (openai.APIError, openai.APIConnectionError, openai.RateLimitError) as e:
+            logger.error(f"Retryable error fetching response: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Non-retryable error fetching response: {e}")
             raise
 
     def generate_response(self, user_query):
-        response = self.CLIENT.chat.completions.create(
-            model=config.model_chat,
-            max_tokens=4096,
-            temperature=0.1,
-            messages=[
-                {"role": "system", "content": self.SYS_PROMPT},
-                {"role": "user", "content": user_query},
-            ]
-        )
-        print("\n")
-        return response.choices[0].message.content
+        try:
+            response = self.CLIENT.chat.completions.create(
+                model=config.model_chat,
+                max_tokens=4096,
+                temperature=0.1,
+                messages=[
+                    {"role": "system", "content": self.SYS_PROMPT},
+                    {"role": "user", "content": user_query},
+                ]
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error in generate_response: {str(e)}")
+            raise
 
 if __name__ == "__main__":
     llm = AzureOpenAIChat()
     try:
         llm.SYS_PROMPT = "Help user find what they are looking for."
-        print(llm.generate_response("Give me summary of all the issues in August this year. Give 1 point."))
+        response = llm.generate_response_with_retry("Give me summary of all the issues in August this year. Give 1 point.")
+        print(f"\n{response}")
 
         encoder = AzureOpenAIEmbeddings()
+        # Test embeddings
+        test_embeddings = encoder(["Test embedding"])
+        print("Embeddings generated successfully")
+    except Exception as e:
+        logger.error(f"Error in main: {str(e)}")
+        raise
     finally:
         # Close connections for this session
         llm.close()
