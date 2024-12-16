@@ -91,7 +91,21 @@ class AzureOpenAIClient:
         self.close()
 
 class AzureOpenAIEmbeddings(EmbeddingFunction, AzureOpenAIClient):
+    def __init__(self):
+        super().__init__()
+        self._last_usage_time = time()
+        self._cleanup_interval = 20  # 20 seconds timeout
+        
+    def _check_and_cleanup(self):
+        current_time = time()
+        if current_time - self._last_usage_time > self._cleanup_interval:
+            self.close()
+            # Reinitialize parent after cleanup
+            super().__init__()
+        self._last_usage_time = current_time
+
     def get_embeddings(self, texts):
+        self._check_and_cleanup()
         response = self.CLIENT.embeddings.create(input=texts, model=config.model_embedding)
         embeddings = [data.embedding for data in response.data]
         return embeddings
