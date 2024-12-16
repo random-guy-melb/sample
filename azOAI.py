@@ -4,6 +4,7 @@ from openai import AzureOpenAI
 from threading import Lock
 import logging
 import os
+import weakref
 
 logger = logging.getLogger(__name__)
 
@@ -66,18 +67,28 @@ class ManagedAzureOpenAIClient:
                     self._creation_time = None
 
 class AzureOpenAIClient:
-    _managed_client = ManagedAzureOpenAIClient(connection_timeout=20)
+    def __init__(self):
+        """
+        Initialize with a per-instance managed client
+        """
+        # Each instance gets its own managed client
+        self._managed_client = ManagedAzureOpenAIClient(connection_timeout=20)
 
     @property
     def CLIENT(self) -> AzureOpenAI:
         return self._managed_client.client
 
-    @classmethod
-    def close_all(cls):
+    def close(self):
         """
-        Close all managed connections
+        Close this instance's connection
         """
-        cls._managed_client.close()
+        self._managed_client.close()
+
+    def __del__(self):
+        """
+        Ensure connection is closed when the instance is garbage collected
+        """
+        self.close()
 
 class AzureOpenAIEmbeddings(EmbeddingFunction, AzureOpenAIClient):
     def get_embeddings(self, texts):
@@ -99,7 +110,9 @@ class AzureOpenAIEmbeddings(EmbeddingFunction, AzureOpenAIClient):
         return self.get_embeddings_with_retry(texts)
 
 class AzureOpenAIChat(AzureOpenAIClient):
-    SYS_PROMPT = '"""""Help the user find the answer they are looking for.""""'
+    def __init__(self):
+        super().__init__()
+        self.SYS_PROMPT = '"""""Help the user find the answer they are looking for.""""'
 
     @retry(wait=wait_exponential(multiplier=1, min=4, max=10), stop=stop_after_attempt(5))
     def generate_response_with_retry(self, user_query):
@@ -123,12 +136,13 @@ class AzureOpenAIChat(AzureOpenAIClient):
         return response.choices[0].message.content
 
 if __name__ == "__main__":
+    llm = AzureOpenAIChat()
     try:
-        llm = AzureOpenAIChat()
         llm.SYS_PROMPT = "Help user find what they are looking for."
         print(llm.generate_response("Give me summary of all the issues in August this year. Give 1 point."))
 
         encoder = AzureOpenAIEmbeddings()
     finally:
-        # Ensure connections are closed when the script exits
-        AzureOpenAIClient.close_all()
+        # Close connections for this session
+        llm.close()
+        encoder.close()
