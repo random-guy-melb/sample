@@ -1,102 +1,83 @@
-from time import time
-from typing import Optional
-from openai import AzureOpenAI
-from openai import APIError, APIConnectionError, RateLimitError
 from threading import Lock
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
-import logging
-import os
+from datetime import datetime, timedelta
+import threading
+from typing import Optional, Dict
+from contextlib import contextmanager
+import weakref
 
-logger = logging.getLogger(__name__)
-
-class ManagedAzureOpenAIClient:
-    def __init__(self, connection_timeout: int = 20):
-        self._client: Optional[AzureOpenAI] = None
-        self._creation_time: Optional[float] = None
-        self._connection_timeout = connection_timeout
+class ConnectionManager:
+    def __init__(self, timeout_seconds: int = 20):
+        self._connections: Dict[int, tuple[AzureOpenAI, datetime]] = {}
         self._lock = Lock()
-        self._create_client()  # Initialize client immediately
-
-    def _create_client(self):
-        """Create a new Azure OpenAI client"""
-        self._client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_KEY"),
-            api_version="2024-02-01",
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
-        )
-        self._creation_time = time()
-        logger.info("Created new Azure OpenAI client connection")
-
-    @property
-    def client(self) -> AzureOpenAI:
-        with self._lock:
-            current_time = time()
+        self._timeout_seconds = timeout_seconds
+        self._cleanup_thread = threading.Thread(target=self._cleanup_old_connections, daemon=True)
+        self._cleanup_thread.start()
+    
+    def _cleanup_old_connections(self):
+        while True:
+            with self._lock:
+                current_time = datetime.now()
+                sessions_to_remove = []
+                
+                for session_id, (client, last_used) in self._connections.items():
+                    if (current_time - last_used).total_seconds() > self._timeout_seconds:
+                        client.close()
+                        sessions_to_remove.append(session_id)
+                
+                for session_id in sessions_to_remove:
+                    del self._connections[session_id]
             
-            # Check if we need to recreate the client
-            if (self._client is None or 
-                self._creation_time is None or 
-                (current_time - self._creation_time) > self._connection_timeout):
-                
-                # Close existing client if it exists
-                self.close()
-                
-                # Create new client
-                self._create_client()
+            threading.Event().wait(1)  # Check every second
 
-            return self._client
-
-    def close(self):
-        """Close the current connection"""
+    def get_connection(self) -> AzureOpenAI:
+        session_id = threading.get_ident()
+        
         with self._lock:
-            if self._client is not None:
-                try:
-                    self._client.close()
-                    logger.info("Closed connection explicitly")
-                except Exception as e:
-                    logger.warning(f"Error closing client: {e}")
-                finally:
-                    self._client = None
-                    self._creation_time = None
+            if session_id in self._connections:
+                client, _ = self._connections[session_id]
+                self._connections[session_id] = (client, datetime.now())
+                return client
+            
+            new_client = AzureOpenAI(
+                api_key=os.getenv("AZURE_OPENAI_KEY"),
+                api_version="2024-02-01",
+                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+            )
+            self._connections[session_id] = (new_client, datetime.now())
+            return new_client
+
+    def close_connection(self, session_id: Optional[int] = None):
+        if session_id is None:
+            session_id = threading.get_ident()
+        
+        with self._lock:
+            if session_id in self._connections:
+                client, _ = self._connections[session_id]
+                client.close()
+                del self._connections[session_id]
 
 class AzureOpenAIClient:
-    def __init__(self):
-        self._managed_client = ManagedAzureOpenAIClient(connection_timeout=20)
+    _connection_manager = ConnectionManager()
 
     @property
-    def client(self) -> AzureOpenAI:
-        return self._managed_client.client
-
-    def close(self):
-        if hasattr(self, '_managed_client'):
-            self._managed_client.close()
+    def CLIENT(self) -> AzureOpenAI:
+        return self._connection_manager.get_connection()
 
     def __del__(self):
-        self.close()
+        self._connection_manager.close_connection()
 
 class AzureOpenAIEmbeddings(EmbeddingFunction, AzureOpenAIClient):
-    def __init__(self):
-        super().__init__()
-        
     def get_embeddings(self, texts):
-        response = self.client.embeddings.create(
-            input=texts, 
-            model=config.model_embedding
-        )
-        return [data.embedding for data in response.data]
+        response = self.CLIENT.embeddings.create(input=texts, model=config.model_embedding)
+        embeddings = [data.embedding for data in response.data]
+        return embeddings
 
-    @retry(
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        stop=stop_after_attempt(5),
-        retry=retry_if_exception_type((APIError, APIConnectionError, RateLimitError))
-    )
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=10), stop=stop_after_attempt(5))
     def get_embeddings_with_retry(self, texts):
         try:
             return self.get_embeddings(texts)
-        except (APIError, APIConnectionError, RateLimitError) as e:
-            logger.error(f"Retryable error in embeddings: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Non-retryable error in embeddings: {str(e)}")
+        except openai.error.OpenAIError as e:
+            logger.error(f"Error fetching embeddings: {e}")
             raise
 
     def __call__(self, texts):
@@ -105,63 +86,32 @@ class AzureOpenAIEmbeddings(EmbeddingFunction, AzureOpenAIClient):
         return self.get_embeddings_with_retry(texts)
 
 class AzureOpenAIChat(AzureOpenAIClient):
-    def __init__(self):
-        super().__init__()
-        self.SYS_PROMPT = '"""""Help the user find the answer they are looking for.""""'
+    SYS_PROMPT = '"""""Help the user find the answer they are looking for.""""'
+
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=10), stop=stop_after_attempt(5))
+    def generate_response_with_retry(self, user_query):
+        try:
+            return self.generate_response(user_query)
+        except openai.error.OpenAIError as e:
+            logger.error(f"Error fetching response: {e}")
+            raise
 
     def generate_response(self, user_query):
-        response = self.client.chat.completions.create(
+        response = self.CLIENT.chat.completions.create(
             model=config.model_chat,
             max_tokens=4096,
             temperature=0.1,
             messages=[
                 {"role": "system", "content": self.SYS_PROMPT},
-                {"role": "user", "content": user_query},
+                {"role": "user", "content": user_query}
             ]
         )
         return response.choices[0].message.content
 
-    @retry(
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        stop=stop_after_attempt(5),
-        retry=retry_if_exception_type((APIError, APIConnectionError, RateLimitError))
-    )
-    def generate_response_with_retry(self, user_query):
-        try:
-            return self.generate_response(user_query)
-        except (APIError, APIConnectionError, RateLimitError) as e:
-            logger.error(f"Retryable error in chat: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Non-retryable error in chat: {str(e)}")
-            raise
-
-def main():
-    llm = None
-    encoder = None
-    
-    try:
-        # Test chat
-        llm = AzureOpenAIChat()
-        response = llm.generate_response_with_retry(
-            "Give me summary of all the issues in August this year. Give 1 point."
-        )
-        print(f"\nResponse: {response}")
-
-        # Test embeddings
-        encoder = AzureOpenAIEmbeddings()
-        embeddings = encoder(["Test embedding"])
-        print("\nEmbeddings generated successfully")
-        
-    except Exception as e:
-        logger.error(f"Error in main: {str(e)}")
-        raise
-    finally:
-        # Clean up resources
-        if llm:
-            llm.close()
-        if encoder:
-            encoder.close()
-
 if __name__ == "__main__":
-    main()
+    # Example usage
+    llm = AzureOpenAIChat()
+    print(llm.generate_response("Give me summary of all the issues in August this year. Give 1 point."))
+
+    encoder = AzureOpenAIEmbeddings()
+    # No need to explicitly close - the connection manager handles this
