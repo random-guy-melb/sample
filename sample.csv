@@ -13,15 +13,14 @@
 
 
 
-Week	Tasks in Progress
-1-3	1. Prompt Fine-Tuning
-10. Infrastructure Planning
-2-5	2. Enhancing Managerial Insights
-5. Database Integration
-3-6	3. Implementing Query Caching
-6. Error Handling & Logging
-4-7	4. Expanding Vector DB
-7. API Development & Auth
-5-9	8. Unit & Functional Testing
-6-10	9. Code Packaging & Containerization
-10-13	11. Comprehensive Documentation
+
+"Week","Tasks in Progress"
+"1-3","1. Prompt Fine-Tuning; 10. Infrastructure Planning"
+"2-5","2. Enhancing Managerial Insights; 5. Database Integration"
+"3-6","3. Implementing Query Caching; 6. Error Handling & Logging"
+"4-7","4. Expanding Vector DB; 7. API Development & Auth"
+"5-9","8. Unit & Functional Testing"
+"6-10","9. Code Packaging & Containerization"
+"10-13","11. Comprehensive Documentation"
+
+
