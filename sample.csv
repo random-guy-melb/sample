@@ -1,13 +1,27 @@
-Estimated Timeline for Development Tasks
-Task Number	Task Description	Estimated Effort	Notes
-1.	Prompt Fine-Tuning Based on Ground Truth	2-3 weeks	Involves collecting data, analyzing responses, and iterating on prompt adjustments.
-2.	Enhancing Managerial Insights on Query Complexity	3-4 weeks	Development of dashboards, defining metrics, and integrating analytics tools.
-3.	Implementing Query Caching	2-3 weeks	Setting up caching mechanisms, identifying common queries, and integrating with existing systems.
-4.	Expanding the Vector Database for Novel Queries	3-4 weeks	Developing functionality to add new queries, updating indexing strategies, and performance testing.
-5.	Integrating a High-Throughput Database (e.g., PostgreSQL) for Vector Embeddings	4-5 weeks	Database setup, schema design, optimization, and integration with the retrieval system.
-6.	Implementing Error Handling & Logging	2-3 weeks	Designing error handling workflows, integrating logging frameworks, and setting up monitoring tools.
-7.	API Development & User Authentication for Plug-ins	4-6 weeks	Designing RESTful or GraphQL APIs, implementing authentication (e.g., OAuth 2.0, JWT), and securing endpoints.
-8.	Component-Wise Unit Testing Followed by Functional Testing	4-5 weeks	Writing unit tests for individual components, setting up testing frameworks, and conducting functional tests.
-9.	Code Packaging & Containerization	3-4 weeks	Organizing codebase, creating Dockerfiles, setting up container orchestration, and testing deployments.
-10.	Infrastructure Planning	3-4 weeks	Evaluating cloud vs. on-premises solutions, resource estimation, cost analysis, and finalizing infrastructure setup.
-11.	Comprehensive Documentation	2-3 weeks	Creating developer guides, API documentation, user manuals, and maintaining up-to-date records.
+"Task Number","Task Description","Estimated Effort (Weeks)","Notes"
+"1","Prompt Fine-Tuning Based on Ground Truth","2-3","Refine and optimize model prompts using real user interactions to enhance response accuracy and relevance."
+"2","Enhancing Managerial Insights on Query Complexity","3-4","Develop dashboards and reports that provide managers with detailed analytics on the complexity of user queries."
+"3","Implementing Query Caching","2-3","Cache responses for frequently occurring queries to reduce latency and decrease reliance on the language model."
+"4","Expanding the Vector Database for Novel Queries","3-4","Create functionality to automatically add new and unique queries to the vector database while maintaining system performance."
+"5","Integrating a High-Throughput Database (e.g., PostgreSQL) for Vector Embeddings","4-5","Implement a robust database solution to efficiently store and retrieve vector embeddings at scale."
+"6","Implementing Error Handling & Logging","2-3","Establish comprehensive error handling and logging mechanisms to ensure system reliability and facilitate troubleshooting."
+"7","API Development & User Authentication for Plug-ins","4-6","Develop secure APIs and integrate user authentication to support and manage plug-in functionalities."
+"8","Component-Wise Unit Testing Followed by Functional Testing","4-5","Conduct thorough unit tests for individual components and perform functional tests to ensure overall system integrity."
+"9","Code Packaging & Containerization","3-4","Organize and package application code efficiently, utilizing containerization to ensure consistent deployments and scalability."
+"10","Infrastructure Planning","3-4","Evaluate and decide between cloud-based solutions (e.g., AWS, Azure, GCP) or on-premises setups based on scalability, cost, and resource requirements."
+"11","Comprehensive Documentation","2-3","Develop detailed documentation for developers, managers, and end-users to support application usage, maintenance, and future development."
+
+
+
+Week	Tasks in Progress
+1-3	1. Prompt Fine-Tuning
+10. Infrastructure Planning
+2-5	2. Enhancing Managerial Insights
+5. Database Integration
+3-6	3. Implementing Query Caching
+6. Error Handling & Logging
+4-7	4. Expanding Vector DB
+7. API Development & Auth
+5-9	8. Unit & Functional Testing
+6-10	9. Code Packaging & Containerization
+10-13	11. Comprehensive Documentation
